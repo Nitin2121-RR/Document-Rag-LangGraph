@@ -1,8 +1,9 @@
+import os
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-import os
 from dotenv import load_dotenv
 from langchain_huggingface import ChatHuggingFace , HuggingFaceEmbeddings , HuggingFaceEndpoint
 from langgraph.graph import StateGraph , START , END
