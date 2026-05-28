@@ -13,3 +13,4 @@ sentence-transformers==2.7.0
 langchain-groq
 torch==2.2.2
 torchvision==0.17.2
+uuid

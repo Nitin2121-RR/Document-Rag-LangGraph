@@ -12,7 +12,7 @@ import operator
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage , BaseMessage
 from langchain_groq import ChatGroq
-
+import uuid
 load_dotenv(".env")
 
 # Streamlit Cloud: push st.secrets into env vars
@@ -44,9 +44,18 @@ if "vectorstore" not in st.session_state:
 if "message" not in st.session_state:
     st.session_state.message = []
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = str(uuid.uuid4())
+
+
 for message in st.session_state.message:
     with st.chat_message(message["role"]):
         st.write(message["content"])
+
+
 
 @st.cache_resource
 def get_model():
@@ -112,7 +121,7 @@ memory = MemorySaver()
 
 config = {
     "configurable": {
-        "thread_id": "nitin"
+        "thread_id": st.session_state.thread_id
     }
 }
 
@@ -131,8 +140,7 @@ def retrived(state: DocState):
     )
 
     return {
-        'content': content,
-        'history': [HumanMessage(content=question)]
+        'content': content
     }
 
 def LLM_mod(state: DocState):
@@ -140,7 +148,12 @@ def LLM_mod(state: DocState):
     question = state['question']
     history = state['history']
     content = state['content']
-
+    formatted_history = ""
+    for msg in history:
+        if isinstance(msg, HumanMessage):
+            formatted_history += f"User: {msg.content}\n"
+        else:
+            formatted_history += f"Assistant: {msg.content}\n"
     prompt = f"""
     You are a helpful document assistant.
 
@@ -148,7 +161,7 @@ def LLM_mod(state: DocState):
     to answer the user question.
 
     Chat History:
-    {history}
+    {formatted_history}
 
     Document Content:
     {content}
@@ -158,12 +171,12 @@ def LLM_mod(state: DocState):
     """
 
     result = model.invoke(prompt)
-
+    human_msg = HumanMessage(content=question)
     response = result.content
 
     return {
         'response': response,
-        'history': [result]
+        'history': [human_msg , result]
     }
 
 #Graph
@@ -192,10 +205,10 @@ if question and st.session_state.vectorstore:
 
     #AI Response
     state = graph.invoke(
-        {'question': question},
+        {'question': question , 'history': st.session_state.history} ,
         config=config
     )
-
+    st.session_state.history = state['history'] 
     st.chat_message('assistant').write(state['response'])
 
     st.session_state.message.append({
